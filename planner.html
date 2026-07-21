@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Plan — Your Day, Charted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B1220;
+    --panel: #121B2E;
+    --panel-raised: #16233B;
+    --line: #24334F;
+    --text: #E8ECF4;
+    --muted: #7C8BA8;
+    --cyan: #5EEAD4;
+    --amber: #FBBF24;
+    --danger: #F87171;
+    --radius: 14px;
+    --shadow: 0 20px 60px rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.07), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(251,191,36,0.06), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{ font-family:'Space Grotesk', sans-serif; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  ::selection{ background: var(--cyan); color:#06201C; }
+
+  a{color:var(--cyan);}
+
+  /* ---------- Layout ---------- */
+  .wrap{
+    max-width:1320px;
+    margin:0 auto;
+    padding: 28px 24px 80px;
+  }
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 4px 34px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:34px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:12px;
+  }
+  .brand .mark{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(145deg, var(--cyan), #1F7A6C);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow: 0 6px 18px rgba(94,234,212,0.25);
+    transform:rotate(-6deg);
+  }
+  .brand .mark svg{ width:20px; height:20px; }
+  .brand-text .name{ font-size:19px; font-weight:700; letter-spacing:0.2px; }
+  .brand-text .tag{ font-size:12px; color:var(--muted); }
+  .clock-live{ font-size:13px; color:var(--muted); text-align:right; }
+  .clock-live b{ color:var(--text); font-weight:600; }
+
+  main.layout{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap: 28px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    main.layout{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+  }
+  .panel::before{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%);
+    pointer-events:none;
+  }
+  .panel h2{
+    font-size:14px; text-transform:uppercase; letter-spacing:1.4px;
+    color:var(--muted); margin:0 0 16px; font-weight:600;
+  }
+  .panel h2 .count{ color:var(--cyan); }
+
+  /* ---------- Intake form ---------- */
+  .field{ margin-bottom:14px; }
+  label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  input[type=text], input[type=number], input[type=time], textarea, select{
+    width:100%;
+    background: var(--panel-raised);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:8px;
+    padding:10px 12px;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    outline:none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, textarea:focus, select:focus{
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(94,234,212,0.14);
+  }
+  textarea{ resize:vertical; min-height:56px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:none; border-radius:9px; cursor:pointer;
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:14px;
+    padding:11px 16px; transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{ background: var(--cyan); color:#062420; width:100%; }
+  .btn-primary:hover{ box-shadow: 0 8px 24px rgba(94,234,212,0.3); }
+  .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--text); }
+  .btn-ghost:hover{ border-color:var(--cyan); color:var(--cyan); }
+  .btn-amber{ background:var(--amber); color:#2B1B03; }
+  .btn-amber:hover{ box-shadow: 0 8px 24px rgba(251,191,36,0.3); }
+  .btn-sm{ padding:7px 11px; font-size:12px; border-radius:7px; }
+  .btn[disabled]{ opacity:0.5; cursor:not-allowed; }
+
+  /* item list (queue) */
+  .queue{ display:flex; flex-direction:column; gap:8px; margin: 6px 0 18px; max-height: 260px; overflow-y:auto; padding-right:4px;}
+  .queue::-webkit-scrollbar{ width:6px; }
+  .queue::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+  .qitem{
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel-raised); border:1px solid var(--line);
+    border-radius:8px; padding:9px 11px;
+    animation: slideIn .25s ease both;
+  }
+  @keyframes slideIn{ from{ opacity:0; transform:translateX(-8px);} to{opacity:1; transform:none;} }
+  .qitem .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .dot.task{ background: var(--cyan); }
+  .dot.goal{ background: var(--amber); }
+  .qitem .info{ flex:1; min-width:0; }
+  .qitem .info .t{ font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .qitem .info .m{ font-size:11px; color:var(--muted); }
+  .qitem .del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; }
+  .qitem .del:hover{ color: var(--danger); }
+  .empty-hint{ font-size:12.5px; color:var(--muted); padding:14px 4px; text-align:center; border:1px dashed var(--line); border-radius:8px; }
+
+  /* ---------- Right column ---------- */
+  .plan-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px;}
+  .plan-header h1{ font-size:26px; margin:0 0 6px; }
+  .plan-header p{ margin:0; color:var(--muted); font-size:13.5px; }
+  .plan-actions{ display:flex; gap:10px; }
+
+  /* Orbit visual - the signature element */
+  .orbit-stage{
+    perspective: 1400px;
+    display:flex; justify-content:center;
+    padding: 10px 0 26px;
+  }
+  .orbit{
+    width:340px; height:340px; position:relative;
+    transform-style:preserve-3d;
+    transform: rotateX(52deg) rotateZ(0deg);
+    transition: transform .5s cubic-bezier(.2,.8,.3,1);
+  }
+  .orbit-stage:hover .orbit{ transform: rotateX(30deg) rotateZ(0deg); }
+  .orbit .ring-base{
+    position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 50% 40%, #17233b, #0d1524 78%);
+    border:1px solid var(--line);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.55), inset 0 0 40px rgba(0,0,0,0.4);
+  }
+  .orbit .hour-tick{
+    position:absolute; left:50%; top:50%;
+    width:1px; height:170px; margin-left:-0.5px; margin-top:-170px;
+    transform-origin: bottom center;
+    background: linear-gradient(to top, rgba(124,139,168,0.35), transparent 70%);
+  }
+  .orbit .hour-label{
+    position:absolute; left:50%; top:50%;
+    font-size:9px; color:var(--muted); font-family:'JetBrains Mono',monospace;
+    transform-origin: 0 0;
+  }
+  .orbit .block-arc{
+    position:absolute; left:50%; top:50%;
+    transform-origin: 0% 0%;
+  }
+  .orbit .now-hand{
+    position:absolute; left:50%; top:50%;
+    width:3px; height:150px; margin-left:-1.5px; margin-top:-150px;
+    background: linear-gradient(to top, var(--amber), rgba(251,191,36,0));
+    transform-origin: bottom center;
+    border-radius:2px;
+    box-shadow: 0 0 10px rgba(251,191,36,0.7);
+    z-index:5;
+  }
+  .orbit .hub{
+    position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px;
+    border-radius:50%; background: var(--cyan);
+    box-shadow: 0 0 18px rgba(94,234,212,0.8);
+    z-index:6;
+  }
+  .orbit-caption{ text-align:center; color:var(--muted); font-size:12px; margin-top:-8px; margin-bottom:6px;}
+
+  /* timeline list */
+  .timeline{ display:flex; flex-direction:column; gap:10px; }
+  .slot{
+    display:grid;
+    grid-template-columns: 86px 3px 1fr auto;
+    align-items:stretch;
+    gap:14px;
+    background: var(--panel-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:13px 14px;
+    animation: rise .3s ease both;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .slot .time{ font-family:'JetBrains Mono', monospace; font-size:12.5px; color:var(--muted); display:flex; flex-direction:column; justify-content:center; gap:2px;}
+  .slot .time .dur{ font-size:10.5px; opacity:0.7;}
+  .slot .bar{ border-radius:2px; }
+  .slot .bar.task{ background: linear-gradient(var(--cyan), rgba(94,234,212,0.2)); }
+  .slot .bar.goal{ background: linear-gradient(var(--amber), rgba(251,191,36,0.2)); }
+  .slot .body{ min-width:0; }
+  .slot .body .title{ font-weight:600; font-size:14.5px; margin-bottom:3px; }
+  .slot .body .note{ font-size:12.5px; color:var(--muted); }
+  .slot .ops{ display:flex; align-items:center; gap:6px; }
+  .icon-btn{
+    background:transparent; border:1px solid var(--line); color:var(--muted);
+    width:28px; height:28px; border-radius:7px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+    transition: all .12s ease;
+  }
+  .icon-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+  .icon-btn.done{ color:#062420; background:var(--cyan); border-color:var(--cyan); }
+  .slot.completed{ opacity:0.45; }
+  .slot.completed .title{ text-decoration:line-through; }
+
+  .plan-empty{
+    text-align:center; padding:60px 20px; color:var(--muted);
+    border:1px dashed var(--line); border-radius:12px;
+  }
+  .plan-empty .glyph{ font-size:34px; margin-bottom:10px; opacity:0.6; }
+
+  /* Check-in */
+  .checkin{ margin-top:30px; }
+  .checkin textarea{ min-height:74px; }
+  .checkin-response{
+    margin-top:16px; background:var(--panel-raised); border:1px solid var(--line);
+    border-radius:10px; padding:16px 18px; font-size:14px; line-height:1.6;
+    animation: rise .3s ease both;
+  }
+  .checkin-response .label{ font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--amber); margin-bottom:8px; font-weight:600;}
+
+  .loader{
+    display:inline-flex; gap:4px; align-items:center;
+  }
+  .loader span{
+    width:6px; height:6px; border-radius:50%; background:currentColor;
+    animation: bounce 1s infinite ease-in-out;
+  }
+  .loader span:nth-child(2){ animation-delay:.15s; }
+  .loader span:nth-child(3){ animation-delay:.3s; }
+  @keyframes bounce{ 0%,80%,100%{ transform:scale(0.6); opacity:0.4;} 40%{ transform:scale(1); opacity:1;} }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
+    padding:12px 20px; border-radius:9px; font-size:13.5px;
+    opacity:0; pointer-events:none; transition: all .25s ease;
+    box-shadow: var(--shadow);
+    z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .error-box{
+    background: rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.35);
+    color:#FCA5A5; padding:12px 14px; border-radius:9px; font-size:13px; margin-top:12px;
+  }
+
+  footer.credit{ text-align:center; color:var(--muted); font-size:12px; margin-top:60px; opacity:0.6;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 19h20L12 2z" fill="#062420"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="name">Flight Plan</div>
+        <div class="tag">chart your day, not just your list</div>
+      </div>
+    </div>
+    <div class="clock-live mono" id="liveClock">--:--:--</div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: intake -->
+    <section class="panel">
+      <h2>Add to the manifest <span class="count" id="queueCount"></span></h2>
+
+      <div class="field">
+        <label>What is it?</label>
+        <input type="text" id="itemName" placeholder="e.g. Finish quarterly report">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Type</label>
+          <select id="itemType">
+            <option value="task">Task (concrete, doable)</option>
+            <option value="goal">Goal (bigger, ongoing)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Est. duration (min)</label>
+          <input type="number" id="itemDuration" placeholder="45" min="5" step="5">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Deadline / by when</label>
+          <input type="text" id="itemDeadline" placeholder="today 5pm, this week...">
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="itemPriority">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="itemNotes" placeholder="anything the planner should know"></textarea>
+      </div>
+      <button class="btn btn-ghost" style="width:100%; margin-bottom:20px;" id="addItemBtn">+ Add to manifest</button>
+
+      <div class="queue" id="queueList"></div>
+
+      <div class="field" style="margin-top:6px;">
+        <label>Day starts / ends</label>
+        <div class="row2">
+          <input type="time" id="dayStart" value="09:00">
+          <input type="time" id="dayEnd" value="21:00">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="generateBtn" style="margin-top:10px;">Chart my day</button>
+      <div id="genError"></div>
+    </section>
+
+    <!-- RIGHT: plan -->
+    <section>
+      <div class="plan-header">
+        <div>
+          <h1 id="planTitle">Today's flight plan</h1>
+          <p id="planSub">Add items on the left, then chart your day.</p>
+        </div>
+        <div class="plan-actions" id="planActions" style="display:none;">
+          <button class="btn btn-ghost btn-sm" id="addSlotBtn">+ Add block</button>
+          <button class="btn btn-ghost btn-sm" id="regenBtn">Re-chart</button>
+        </div>
+      </div>
+
+      <div id="orbitContainer"></div>
+
+      <div id="timelineArea">
+        <div class="plan-empty" id="planEmptyState">
+          <div class="glyph">◇</div>
+          No plan yet — add a few tasks or goals, then hit <b>Chart my day</b>.
+        </div>
+      </div>
+
+      <div class="panel checkin" id="checkinPanel" style="display:none;">
+        <h2>Free time just opened up</h2>
+        <textarea id="checkinInput" placeholder="e.g. I finished the report early and the call got cancelled — I've got about an hour free, what should I do?"></textarea>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <button class="btn btn-amber" id="checkinBtn" style="flex:1;">Ask what's next</button>
+        </div>
+        <div id="checkinResponse"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="credit">Plans are generated by AI and are a starting point — adjust anything that doesn't fit your day.</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ---------------- State ----------------
+  let manifest = [];      // { id, name, type, duration, deadline, priority, notes }
+  let schedule = [];      // { id, start, end, title, type, note, sourceId, done }
+  let manifestSeq = 1;
+  let scheduleSeq = 1;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---------------- Live clock ----------------
+  function tickClock(){
+    const now = new Date();
+    $('liveClock').textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    positionNowHand();
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  function showToast(msg){
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=> t.classList.remove('show'), 2600);
+  }
+
+  // ---------------- Manifest (input queue) ----------------
+  function renderQueue(){
+    const el = $('queueList');
+    $('queueCount').textContent = manifest.length ? `(${manifest.length})` : '';
+    if(!manifest.length){
+      el.innerHTML = `<div class="empty-hint">Nothing yet. Add a task or goal above.</div>`;
+      return;
+    }
+    el.innerHTML = manifest.map(m => `
+      <div class="qitem">
+        <div class="dot ${m.type}"></div>
+        <div class="info">
+          <div class="t">${escapeHtml(m.name)}</div>
+          <div class="m">${m.type === 'goal' ? 'Goal' : 'Task'}${m.duration ? ' · ' + m.duration + 'm' : ''}${m.deadline ? ' · ' + escapeHtml(m.deadline) : ''}${m.priority !== 'normal' ? ' · ' + m.priority : ''}</div>
+        </div>
+        <button class="del" data-id="${m.id}" title="Remove">&times;</button>
+      </div>
+    `).join('');
+    el.querySelectorAll('.del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        manifest = manifest.filter(m => m.id !== Number(btn.dataset.id));
+        renderQueue();
+      });
+    });
+  }
+
+  $('addItemBtn').addEventListener('click', ()=>{
+    const name = $('itemName').value.trim();
+    if(!name){ $('itemName').focus(); return; }
+    manifest.push({
+      id: manifestSeq++,
+      name,
+      type: $('itemType').value,
+      duration: $('itemDuration').value ? Number($('itemDuration').value) : null,
+      deadline: $('itemDeadline').value.trim(),
+      priority: $('itemPriority').value,
+      notes: $('itemNotes').value.trim()
+    });
+    $('itemName').value=''; $('itemDuration').value=''; $('itemDeadline').value=''; $('itemNotes').value='';
+    $('itemPriority').value='normal'; $('itemType').value='task';
+    $('itemName').focus();
+    renderQueue();
+  });
+  $('itemName').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('addItemBtn').click(); }});
+
+  function escapeHtml(str){
+    return (str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------------- Claude API helper ----------------
+  async function callClaude(system, userText){
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: system,
+        messages: [{ role: "user", content: userText }]
+      })
+    });
+    if(!response.ok){
+      throw new Error("The planner service didn't respond (status " + response.status + ").");
+    }
+    const data = await response.json();
+    const text = (data.content || []).map(b => b.type === 'text' ? b.text : '').join('\n').trim();
+    return text;
+  }
+
+  function extractJson(text){
+    let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const first = cleaned.indexOf('{');
+    const firstArr = cleaned.indexOf('[');
+    let start = -1;
+    if(first === -1) start = firstArr;
+    else if(firstArr === -1) start = first;
+    else start = Math.min(first, firstArr);
+    if(start > 0) cleaned = cleaned.slice(start);
+    return JSON.parse(cleaned);
+  }
+
+  // ---------------- Generate plan ----------------
+  $('generateBtn').addEventListener('click', generatePlan);
+  $('regenBtn').addEventListener('click', generatePlan);
+
+  async function generatePlan(){
+    if(!manifest.length){
+      showToast("Add at least one task or goal first.");
+      return;
+    }
+    const btn = $('generateBtn');
+    const genErr = $('genError');
+    genErr.innerHTML = '';
+    const originalLabel = document.activeElement === $('regenBtn') ? null : btn.innerHTML;
+    $('generateBtn').innerHTML = `Charting <span class="loader"><span></span><span></span><span></span></span>`;
+    $('generateBtn').disabled = true;
+    $('regenBtn').disabled = true;
+
+    const dayStart = $('dayStart').value || '09:00';
+    const dayEnd = $('dayEnd').value || '21:00';
+    const now = new Date();
+    const nowStr = now.toTimeString().slice(0,5);
+
+    const manifestText = manifest.map(m =>
+      `- [${m.type}] "${m.name}"${m.duration ? `, ~${m.duration} min` : ''}${m.deadline ? `, deadline: ${m.deadline}` : ''}, priority: ${m.priority}${m.notes ? `, notes: ${m.notes}` : ''}`
+    ).join('\n');
+
+    const system = `You are a precise daily scheduling assistant. You turn a list of tasks and goals into a realistic same-day timeline between a start and end time. Respond with ONLY a JSON array, no prose, no markdown fences. Each element: {"start":"HH:MM","end":"HH:MM","title":"string","type":"task"|"goal"|"break","note":"short reason or tip, one sentence"}. Rules: times are 24h HH:MM, blocks must not overlap, respect the day window given, order by priority and deadline urgency, break large goals into one concrete focused block (not the whole goal at once), insert short breaks between long blocks, leave the plan realistic (don't overpack every minute). Current time is ${nowStr}; do not schedule blocks that start before current time. Output valid JSON only.`;
+
+    const user = `Day window: ${dayStart} to ${dayEnd}.\nItems:\n${manifestText}\n\nProduce the schedule JSON array now.`;
+
+    try{
+      const raw = await callClaude(system, user);
+      const parsed = extractJson(raw);
+      if(!Array.isArray(parsed) || !parsed.length) throw new Error("empty plan");
+      schedule = parsed.map(p => ({
+        id: scheduleSeq++,
+        start: p.start, end: p.end,
+        title: p.title || 'Untitled block',
+        type: p.type === 'goal' ? 'goal' : (p.type === 'break' ? 'break' : 'task'),
+        note: p.note || '',
+        done: false
+      }));
+      renderPlan();
+      $('checkinPanel').style.display = 'block';
+      showToast("Your day is charted.");
+    }catch(err){
+      genErr.innerHTML = `<div class="error-box">Couldn't build the plan just now (${escapeHtml(err.message)}). Try again in a moment.</div>`;
+    }finally{
+      $('generateBtn').innerHTML = 'Chart my day';
+      $('generateBtn').disabled = false;
+      $('regenBtn').disabled = false;
+    }
+  }
+
+  // ---------------- Render plan (timeline + orbit) ----------------
+  function renderPlan(){
+    const empty = $('planEmptyState');
+    const area = $('timelineArea');
+    const actions = $('planActions');
+    if(!schedule.length){
+      empty.style.display = 'block';
+      area.innerHTML = ''; area.appendChild(empty);
+      actions.style.display = 'none';
+      $('orbitContainer').innerHTML = '';
+      $('planSub').textContent = 'Add items on the left, then chart your day.';
+      return;
+    }
+    actions.style.display = 'flex';
+    $('planSub').textContent = `${schedule.length} block${schedule.length>1?'s':''} · ${schedule[0].start} – ${schedule[schedule.length-1].end}`;
+
+    // sort by start time
+    schedule.sort((a,b)=> toMinutes(a.start) - toMinutes(b.start));
+
+    area.innerHTML = schedule.map(s => `
+      <div class="slot ${s.done ? 'completed' : ''}" data-id="${s.id}">
+        <div class="time">${s.start}<span class="dur">${s.end}</span></div>
+        <div class="bar ${s.type}"></div>
+        <div class="body">
+          <div class="title">${escapeHtml(s.title)}</div>
+          ${s.note ? `<div class="note">${escapeHtml(s.note)}</div>` : ''}
+        </div>
+        <div class="ops">
+          <button class="icon-btn ${s.done ? 'done' : ''}" data-act="done" data-id="${s.id}" title="Mark done">&#10003;</button>
+          <button class="icon-btn" data-act="del" data-id="${s.id}" title="Remove">&times;</button>
+        </div>
+      </div>
+    `).join('');
+
+    area.querySelectorAll('[data-act="done"]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const item = schedule.find(s=>s.id===Number(b.dataset.id));
+        item.done = !item.done;
+        renderPlan();
+      });
+    });
+    area.querySelectorAll('[data-act="del"]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        schedule = schedule.filter(s=>s.id!==Number(b.dataset.id));
+        renderPlan();
+      });
+    });
+
+    renderOrbit();
+  }
+
+  $('addSlotBtn').addEventListener('click', ()=>{
+    const title = prompt("Block title:");
+    if(!title) return;
+    const start = prompt("Start time (HH:MM):", "09:00");
+    const end = prompt("End time (HH:MM):", "09:30");
+    if(!start || !end) return;
+    schedule.push({ id: scheduleSeq++, start, end, title, type:'task', note:'', done:false });
+    renderPlan();
+  });
+
+  function toMinutes(hhmm){
+    if(!hhmm || !hhmm.includes(':')) return 0;
+    const [h,m] = hhmm.split(':').map(Number);
+    return h*60+m;
+  }
+
+  // ---------------- Orbit (3D signature visual) ----------------
+  function renderOrbit(){
+    const wrap = $('orbitContainer');
+    const R = 150; // radius in px matching hour-tick length
+    let ticks = '';
+    let labels = '';
+    for(let h=0; h<24; h++){
+      const angle = (h/24)*360;
+      ticks += `<div class="hour-tick" style="transform: rotate(${angle}deg);"></div>`;
+      if(h % 3 === 0){
+        const rad = (angle-90) * Math.PI/180;
+        const lx = Math.cos(rad) * (R+18);
+        const ly = Math.sin(rad) * (R+18);
+        labels += `<div class="hour-label" style="transform: translate(${lx}px, ${ly}px);">${String(h).padStart(2,'0')}</div>`;
+      }
+    }
+    let arcs = '';
+    const palette = { task:'rgba(94,234,212,0.85)', goal:'rgba(251,191,36,0.85)', break:'rgba(124,139,168,0.5)' };
+    schedule.forEach(s=>{
+      const startMin = toMinutes(s.start);
+      const endMin = Math.max(toMinutes(s.end), startMin+5);
+      const a1 = (startMin/1440)*360 - 90;
+      const a2 = (endMin/1440)*360 - 90;
+      arcs += arcSegment(a1, a2, R, palette[s.type] || palette.task);
+    });
+    wrap.innerHTML = `
+      <div class="orbit-stage">
+        <div class="orbit" id="orbitEl">
+          <div class="ring-base"></div>
+          ${ticks}
+          ${labels}
+          ${arcs}
+          <div class="now-hand" id="nowHand"></div>
+          <div class="hub"></div>
+        </div>
+      </div>
+      <div class="orbit-caption">a 24-hour orbit of today's plan · hover to level it out</div>
+    `;
+    positionNowHand();
+  }
+
+  function arcSegment(startDeg, endDeg, R, color){
+    // build an SVG-less arc using a rotated + skewed div is messy; use conic gradient wedge via clip on a positioned circle segment instead: simplest robust approach = small SVG per segment.
+    const cx = 0, cy = 0;
+    const startRad = startDeg * Math.PI/180;
+    const endRad = endDeg * Math.PI/180;
+    const rInner = R - 14, rOuter = R;
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    const x1 = cx + rOuter*Math.cos(startRad), y1 = cy + rOuter*Math.sin(startRad);
+    const x2 = cx + rOuter*Math.cos(endRad), y2 = cy + rOuter*Math.sin(endRad);
+    const x3 = cx + rInner*Math.cos(endRad), y3 = cy + rInner*Math.sin(endRad);
+    const x4 = cx + rInner*Math.cos(startRad), y4 = cy + rInner*Math.sin(startRad);
+    const size = R*2 + 40;
+    const half = size/2;
+    const path = `M ${x1+half} ${y1+half} A ${rOuter} ${rOuter} 0 ${large} 1 ${x2+half} ${y2+half} L ${x3+half} ${y3+half} A ${rInner} ${rInner} 0 ${large} 0 ${x4+half} ${y4+half} Z`;
+    return `<svg class="block-arc" width="${size}" height="${size}" style="margin-left:-${half}px; margin-top:-${half}px;" viewBox="0 0 ${size} ${size}">
+      <path d="${path}" fill="${color}" stroke="rgba(11,18,32,0.6)" stroke-width="1"/>
+    </svg>`;
+  }
+
+  function positionNowHand(){
+    const hand = $('nowHand');
+    if(!hand) return;
+    const now = new Date();
+    const mins = now.getHours()*60 + now.getMinutes();
+    const deg = (mins/1440)*360;
+    hand.style.transform = `rotate(${deg}deg)`;
+  }
+
+  // ---------------- Check-in / free time ----------------
+  $('checkinBtn').addEventListener('click', async ()=>{
+    const msg = $('checkinInput').value.trim();
+    if(!msg){ $('checkinInput').focus(); return; }
+    const btn = $('checkinBtn');
+    const respEl = $('checkinResponse');
+    btn.disabled = true;
+    btn.innerHTML = `Thinking <span class="loader"><span></span><span></span><span></span></span>`;
+    respEl.innerHTML = '';
+
+    const now = new Date();
+    const nowStr = now.toTimeString().slice(0,5);
+    const scheduleText = schedule.map(s => `- [${s.done ? 'DONE' : 'pending'}] ${s.start}-${s.end} ${s.title}`).join('\n') || '(no plan yet)';
+    const manifestText = manifest.map(m => `- [${m.type}] ${m.name}`).join('\n') || '(none listed)';
+
+    const system = `You are a friendly, practical daily planning assistant. The user has a schedule for today and just gave you an update (what they finished, how much free time they have, or a question about what to do next). Respond conversationally in 2-5 short sentences: acknowledge briefly, then give a clear, specific recommendation for what to do with the time, referencing their actual pending tasks/goals where relevant. Do not repeat their whole schedule back. No markdown headers, just plain prose.`;
+    const user = `Current time: ${nowStr}\n\nToday's schedule:\n${scheduleText}\n\nOutstanding tasks/goals list:\n${manifestText}\n\nUser update: "${msg}"`;
+
+    try{
+      const reply = await callClaude(system, user);
+      respEl.innerHTML = `<div class="checkin-response"><div class="label">Suggestion</div>${escapeHtml(reply).replace(/\n/g,'<br>')}</div>`;
+    }catch(err){
+      respEl.innerHTML = `<div class="error-box">Couldn't reach the planner just now. Try again shortly.</div>`;
+    }finally{
+      btn.disabled = false;
+      btn.innerHTML = "Ask what's next";
+    }
+  });
+
+  renderQueue();
+})();
+</script>
+</body>
+</html>
